@@ -47,13 +47,31 @@ def check_player_info(target_id):
 
         try:
             progress.update(task, advance=30)
-            res = requests.post('https://shop2game.com/api/auth/player_id_login', 
-                              cookies=cookies, headers=headers, json=json_data)
+            res = requests.post(
+                'https://shop2game.com/api/auth/player_id_login',
+                cookies=cookies,
+                headers=headers,
+                json=json_data,
+                timeout=20
+            )
 
-            if res.status_code != 200 or not res.json().get('nickname'):
+            # Diagnostic logs: response details only. Cookie/session values are not logged.
+            print("[SHOP2GAME] HTTP STATUS:", res.status_code)
+            print("[SHOP2GAME] CONTENT TYPE:", res.headers.get("content-type"))
+
+            try:
+                player_data = res.json()
+                print("[SHOP2GAME] RESPONSE:", str(player_data)[:500])
+            except ValueError:
+                print("[SHOP2GAME] NON-JSON RESPONSE:", res.text[:500])
+                return {"error": "Shop2Game returned an invalid response"}
+
+            if res.status_code != 200:
+                return {"error": f"Shop2Game HTTP {res.status_code}"}
+
+            if not player_data.get('nickname'):
+                print("[SHOP2GAME] Player nickname missing in response")
                 return {"error": "ID NOT FOUND"}
-
-            player_data = res.json()
             nickname = player_data.get('nickname', 'N/A')
             region = player_data.get('region', 'N/A')
 
